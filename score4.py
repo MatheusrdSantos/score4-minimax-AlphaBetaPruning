@@ -591,6 +591,6 @@ board.generatePossibleMoves()
 #with open('data.json', 'w+') as outfile:
     #json.dump(board.allPossibilities, outfile)
 #print(len(board.allPossibilities))
-print("fim")
+print("fimmm")
 #print(board.allPossibilities)
 #play(board, board.allPossibilities, -1)
