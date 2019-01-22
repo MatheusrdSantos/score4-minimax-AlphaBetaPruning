@@ -344,7 +344,7 @@ class Board:
             #if(not self.validate_moves(possibilitie)):
                 #all_possibilities.pop(index)
         #self.filterPossibilities(all_possibilities, self.getNewInstance())
-        self.allPossibilities = self.getAllPossibilities([None, []], self.valid_moves, self.dificult-1)
+        #self.allPossibilities = self.getAllPossibilities([None, []], self.valid_moves, self.dificult-1)
         #print("filtrando possibilidades...")
         self.filterPossibilities([])
         #print("Operação finalizada")
@@ -421,12 +421,29 @@ class Board:
             new_board.dropCell(child[0])
             self.filterPossibilities(child, new_board)
     '''
+    '''
     def getAllPossibilities(self, node, controll, n):
         if(n<0):
             return node 
         for element in controll:
             node[1].append(self.getAllPossibilities([element, []], controll, n-1))
         return node
+    '''
+    def getAllChilds(self):
+        childs = []
+        for move in self.valid_moves:
+            copy = self.getNewInstance()
+            if(copy.dropCell(move)):
+                childs.append(copy)
+        return childs
+    def getAllPossibilities(self):
+        all = [[self]]
+        for count in range(0, self.dificult):
+            new_depth = []
+            for node in all[-1]:
+                new_depth+=node.getAllChilds()
+            all.append(new_depth)
+        return all
     def loadMovesFromJson(self):
         with open('data.json', 'r') as myfile:
             data = json.loads(myfile.read())
@@ -591,6 +608,6 @@ board.generatePossibleMoves()
 #with open('data.json', 'w+') as outfile:
     #json.dump(board.allPossibilities, outfile)
 #print(len(board.allPossibilities))
-print("fimmm")
+print("fim")
 #print(board.allPossibilities)
 #play(board, board.allPossibilities, -1)
