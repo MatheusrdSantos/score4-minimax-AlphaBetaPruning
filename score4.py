@@ -564,10 +564,11 @@ positions = [[0 for x in range(0, 7)] for y in range(0, 6)]
 for y in range(0, 6):
     for x in range(0, 7):
         positions[y][x] = [None, None]
-board = Board(positions, dificult=7)
+board = Board(positions, dificult=5)
 board.printBoard()
 
 
+'''
 board.dropCell(3)
 #board.printBoard()
 board.dropCell(3)
@@ -585,7 +586,6 @@ board.dropCell(1)
 board.dropCell(2)
 board.dropCell(2)
 board.dropCell(4)
-'''
 board.dropCell(0)
 #board.printBoard()
 board.dropCell(0)
@@ -611,6 +611,6 @@ print("gerando")
 all = board.getAllPossibilities()
 print("fim")
 print(len(all))
-print(len(all[7]))
+print(len(all[-1]))
 #print(board.allPossibilities)
 #play(board, board.allPossibilities, -1)
