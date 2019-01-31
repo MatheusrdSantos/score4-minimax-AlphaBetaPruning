@@ -1,4 +1,3 @@
-'''
 def test(v1, v2):
     combinations = []
     for e in v1:
@@ -19,17 +18,17 @@ final = []
 #result = test(initial, controll)
 result2 = testPos(initial, controll, 6)
 final+= result2
-print(len(final))
-'''
+print(final)
+
 '''
 v =[1,2,3,4,4,5,6,7,8,9]
 for i,x in enumerate(v, start=0):
     if(x%2==0):
         v.pop(i)
 print(v)
-'''
 a = 0
 print("inici")
 for x in range(0, 10000000):
     a+=1
 print("fim")
+'''

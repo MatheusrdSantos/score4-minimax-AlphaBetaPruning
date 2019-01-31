@@ -1,10 +1,11 @@
 import json
 import sys
+import copy
 #sys.setrecursionlimit(3000)
 #player_0_wins = 1000000
 #player_1_wins = -player_0_wins
 class Board:
-    def __init__(self, positions, moves = None, n_moves = 0, dificult=7):
+    def __init__(self, positions, moves = None, n_moves = 0, dificult=7 , combinations=None):
         self.positions = positions
         self.moves = moves
         self.n_moves = n_moves
@@ -14,6 +15,7 @@ class Board:
         self.player_1_wins = -self.player_0_wins
         self.allPossibilities = None
         self.dificult = dificult
+        self.combinations = combinations
     def printBoard(self, winner=-1):
         #-1 -> no winner
         # 0 -> player 0 wins
@@ -121,6 +123,40 @@ class Board:
             for x in range(0, 7):
                 new_positions[y][x] = self.positions[y][x]
         return Board(new_positions, n_moves=self.n_moves, dificult=self.dificult)
+    def format(self, v1, v2):    
+        combinations = []
+        for e in v1:
+            for element in v2:
+                combinations.append(e+[element])
+        return combinations
+    def getCombinations(self, v1, v2, n):
+        if n == 0:
+            return v1
+        result = []
+        for element in v1:
+            result+=self.format([element], v2)
+        return self.getCombinations(result, v2, n-1)
+    def generateCombinations(self):
+        self.combinations = self.getCombinations(self.valid_moves_array, self.valid_moves, self.dificult-1)
+    def scoreA(self, combination):
+        new_tab = self.getNewInstance()
+        valid_moves = []
+        for move in combination:
+            if(new_tab.dropCell(move)):
+                score = new_tab.getScore()
+                if(score==self.player_0_wins or score==self.player_1_wins):
+                    valid_moves.append([move, -1])
+                    break
+                else:
+                    valid_moves.append(move)
+            else:
+                print('x')
+                break
+        return valid_moves
+                
+    def scoreEdge(self):
+        for combination in self.combinations:
+            combination = self.scoreA(combination)
     def checkUp(self, x, y):
         score = 0
         player_number = self.positions[y][x][0] 
@@ -432,18 +468,22 @@ class Board:
     def getAllChilds(self):
         childs = []
         for move in self.valid_moves:
-            copy = self.getNewInstance()
-            if(copy.dropCell(move)):
-                childs.append(copy)
+            new_board = self.getNewInstance()
+            if(new_board.dropCell(move)):
+                childs.append(new_board)
         return childs
     def getAllPossibilities(self):
         all = [[self]]
         for count in range(0, self.dificult):
             new_depth = []
             for node in all[-1]:
-                new_depth+=node.getAllChilds()
+                score = node.getScore() 
+                if(score==self.player_0_wins or score == self.player_1_wins):
+                    continue
+                new_depth.extend(node.getAllChilds())
             all.append(new_depth)
-        return all
+        self.allPossibilities = all
+        
     def loadMovesFromJson(self):
         with open('data.json', 'r') as myfile:
             data = json.loads(myfile.read())
@@ -564,7 +604,7 @@ positions = [[0 for x in range(0, 7)] for y in range(0, 6)]
 for y in range(0, 6):
     for x in range(0, 7):
         positions[y][x] = [None, None]
-board = Board(positions, dificult=5)
+board = Board(positions, dificult=7)
 board.printBoard()
 
 
@@ -579,7 +619,7 @@ board.dropCell(6)
 
 board.dropCell(0)
 board.dropCell(2)
-#board.printBoard()
+board.printBoard()
 board.dropCell(1)
 board.dropCell(2)
 board.dropCell(1)
@@ -608,9 +648,11 @@ print("gerando")
 #with open('data.json', 'w+') as outfile:
     #json.dump(board.allPossibilities, outfile)
 #print(len(board.allPossibilities))
-all = board.getAllPossibilities()
+#board.getAllPossibilities()
+board.generateCombinations()
+board.scoreEdge()
 print("fim")
-print(len(all))
-print(len(all[-1]))
+#print(len(board.allPossibilities))
+#print(len(board.allPossibilities[-1]))
 #print(board.allPossibilities)
 #play(board, board.allPossibilities, -1)
