@@ -1,3 +1,4 @@
+'''
 def test(v1, v2):
     combinations = []
     for e in v1:
@@ -19,6 +20,7 @@ final = []
 result2 = testPos(initial, controll, 6)
 final+= result2
 print(final)
+'''
 
 '''
 v =[1,2,3,4,4,5,6,7,8,9]
@@ -32,3 +34,8 @@ for x in range(0, 10000000):
     a+=1
 print("fim")
 '''
+def soma(a):
+    a+=1
+
+    soma(a)
+soma(1)

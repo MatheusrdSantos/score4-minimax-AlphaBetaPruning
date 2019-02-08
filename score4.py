@@ -1,11 +1,11 @@
 import json
 import sys
 import copy
-#sys.setrecursionlimit(3000)
+sys.setrecursionlimit(5000)
 #player_0_wins = 1000000
 #player_1_wins = -player_0_wins
 class Board:
-    def __init__(self, positions, moves = None, n_moves = 0, dificult=7 , combinations=None):
+    def __init__(self, positions, moves = None, n_moves = 0, dificult=7 , combinations=None, alpha=-1000000, beta=1000000, parent_move=None):
         self.positions = positions
         self.moves = moves
         self.n_moves = n_moves
@@ -13,9 +13,20 @@ class Board:
         self.valid_moves_array = [[0], [1], [2], [3], [4], [5], [6]]
         self.player_0_wins = 1000000
         self.player_1_wins = -self.player_0_wins
-        self.allPossibilities = None
         self.dificult = dificult
         self.combinations = combinations
+        self.avaliable_moves = [0, 1, 2, 3, 4, 5, 6]
+        self.isLeaf = False
+        self.tree = None
+        self.alpha = [alpha, parent_move]
+        self.beta = [beta, parent_move]
+        self.parent_move = parent_move
+        self.best_move = None
+        self.generated_childs = 0
+    def setParentMove(self, move):
+        self.alpha[1] = move
+        self.beta[1] = move
+        self.parent_move = move
     def printBoard(self, winner=-1):
         #-1 -> no winner
         # 0 -> player 0 wins
@@ -122,7 +133,7 @@ class Board:
         for y in range(0, 6):
             for x in range(0, 7):
                 new_positions[y][x] = self.positions[y][x]
-        return Board(new_positions, n_moves=self.n_moves, dificult=self.dificult)
+        return Board(new_positions, n_moves=self.n_moves, dificult=self.dificult, alpha= self.alpha[0], beta= self.beta[0])
     def format(self, v1, v2):    
         combinations = []
         for e in v1:
@@ -289,182 +300,6 @@ class Board:
                 for child in node[1]:
                     new_board = board.getNewInstance()
                     self.applyScore(child, new_board)
-    def fulfilTree(self, moves, n_player):
-        # first player is 1(max) and second is -1(min)
-        if(not moves):
-            if(n_player>0):
-                max_score = self.player_1_wins
-                for i,child in enumerate(self.allPossibilities[1], start=0):
-                    child_score = self.fulfilTree([i], n_player*(-1))
-                    if(child_score>=max_score):
-                        max_score = child_score
-                    if(child[1]):
-                        child.append(child_score)
-                self.allPossibilities.append(max_score)
-            else:
-                min_score = self.player_0_wins
-                for i,child in enumerate(self.allPossibilities[1], start=0):
-                    child_score = self.fulfilTree([i], n_player*(-1))
-                    if(child_score<=min_score):
-                        min_score = child_score
-                    if(child[1]):
-                        child.append(child_score)
-                self.allPossibilities.append(min_score)
-        else:
-            actual_node = self.allPossibilities
-            for item in moves:
-                actual_node = actual_node[1][item]
-            if(not actual_node[1]):
-                return actual_node[2]
-            if(n_player>0):
-                max_score = self.player_1_wins
-                for i,child in enumerate(actual_node[1], start=0):
-                    child_score = self.fulfilTree(moves+[i], n_player*(-1))
-                    if(child_score>=max_score):
-                        max_score = child_score
-                    if(child[1]):
-                        child.append(child_score)
-                actual_node.append(max_score)
-                return max_score
-            else:
-                min_score = self.player_0_wins
-                for i,child in enumerate(actual_node[1], start=0):
-                    child_score = self.fulfilTree(moves+[i], n_player*(-1))
-                    if(child_score<=min_score):
-                        min_score = child_score
-                    if(child[1]):
-                        child.append(child_score)
-                actual_node.append(min_score)
-                return min_score
-    '''
-    def fulfilTree(self, node, n_player):
-        # first player is 1(max) and second is -1(min)
-        if(not node[1]):
-            return node[2]
-        else:
-            if(n_player>0):
-                scores = []
-                for child in node[1]:
-                    scores.append(self.fulfilTree(child, n_player*(-1)))
-                node.append(max(scores))
-                return max(scores)
-            else:
-                scores = []
-                for child in node[1]:
-                    scores.append(self.fulfilTree(child, n_player*(-1)))
-                node.append(min(scores))
-                return min(scores)
-    '''
-    '''         
-    def applyScore(self):   
-        print("Aplicando score nos movimentos...")
-        for possibility in self.allPossibilities:
-            possibility = self.simulateMovesWithScore(possibility)
-    '''
-    '''
-    def generatePossibleMoves(self, n_moves):
-        print("Gerando movimentos possíveis...")
-        
-        all_possibilities = self.getAllPossibilities(self.valid_moves_array, self.valid_moves, n_moves-1)
-        #for index, possibilitie in enumerate(all_possibilities, start=0):
-            #if(not self.validate_moves(possibilitie)):
-                #all_possibilities.pop(index)
-        self.allPossibilities = all_possibilities
-        return all_possibilities
-    '''
-    def generatePossibleMoves(self):
-        #print("Gerando movimentos possíveis...")
-        
-        
-        #for index, possibilitie in enumerate(all_possibilities, start=0):
-            #if(not self.validate_moves(possibilitie)):
-                #all_possibilities.pop(index)
-        #self.filterPossibilities(all_possibilities, self.getNewInstance())
-        #self.allPossibilities = self.getAllPossibilities([None, []], self.valid_moves, self.dificult-1)
-        #print("filtrando possibilidades...")
-        self.filterPossibilities([])
-        #print("Operação finalizada")
-    def filterPossibilities(self, moves):
-        if(not moves):
-            deleted= False
-            count = 0
-            for i,child in enumerate(self.allPossibilities[1], start=0):
-                new_board = self.getNewInstance()
-                if(not new_board.dropCell(child[0])):
-                    deleted = True
-                    count+=1
-                    self.allPossibilities[1][i] = False
-                else:
-                    score = new_board.getScore() 
-                    if(score==new_board.player_0_wins or score==new_board.player_1_wins):
-                        child[1].clear()
-                        child.append(score)
-                    else:
-                        if(child[1]):
-                            self.filterPossibilities(moves+[(i, child[0])])
-                        else:
-                            child.append(score)
-            if(deleted):
-                for x in range(0, count):
-                    self.allPossibilities[1].remove(False)
-        else:
-            actual_node = self.allPossibilities
-            for item in moves:
-                actual_node = actual_node[1][item[0]]
-            deleted= False
-            count = 0
-            for i,child in enumerate(actual_node[1], start=0):
-                new_board = self.getNewInstance()
-                for move in moves:
-                    new_board.dropCell(move[1])
-                if(not new_board.dropCell(child[0])):
-                    deleted = True
-                    count+=1
-                    actual_node[1][i] = False
-                else:
-                    score = new_board.getScore() 
-                    if(score==new_board.player_0_wins or score==new_board.player_1_wins):
-                        child[1].clear()
-                        child.append(score)
-                    else:
-                        if(child[1]):
-                            self.filterPossibilities(moves+[(i, child[0])])
-                        else:
-                            child.append(score)
-            if(deleted):
-                for x in range(0, count):
-                    actual_node[1].remove(False) 
-     
-    '''
-    def filterPossibilities(self, node, board):
-        deleted= False
-        count = 0
-        for i,child in enumerate(node[1], start=0):
-            new_board = board.getNewInstance()
-            if(not new_board.dropCell(child[0])):
-                deleted = True
-                count+=1
-                node[1][i] = -1
-            else:
-                score = new_board.getScore() 
-                if(score==new_board.player_0_wins or score==new_board.player_1_wins):
-                    child[1].clear()
-        if(deleted):
-            for count in range(0, count):
-                node[1].remove(-1)
-        for child in node[1]:
-            new_board = board.getNewInstance()
-            new_board.dropCell(child[0])
-            self.filterPossibilities(child, new_board)
-    '''
-    '''
-    def getAllPossibilities(self, node, controll, n):
-        if(n<0):
-            return node 
-        for element in controll:
-            node[1].append(self.getAllPossibilities([element, []], controll, n-1))
-        return node
-    '''
     def getAllChilds(self):
         childs = []
         for move in self.valid_moves:
@@ -488,171 +323,110 @@ class Board:
         with open('data.json', 'r') as myfile:
             data = json.loads(myfile.read())
         self.allPossibilities = data
-        #self.filterPossibilities()
         return data
-def play(board, node, n_player=1):
-    if(n_player>0):
-        if(len(node[1])==0):
-            if(board.n_moves%2==0):
-                player_multiplier = 1  
+    def getChild(self):
+        remove = []
+        use = []
+        new_board = None
+        for i,move in enumerate(self.avaliable_moves, start=0):
+            new_board = self.getNewInstance()
+            if(new_board.dropCell(self.avaliable_moves[i])):
+                score = new_board.getScore() 
+                if(score==self.player_0_wins or score==self.player_1_wins):
+                    new_board.avaliable_moves = []
+                new_board.setParentMove(self.avaliable_moves[i])
+                remove.append(i)
+                use.append(i)
+                break
             else:
-                player_multiplier = -1
-            #board.filterPossibilities(board.allPossibilities, board.getNewInstance())
-            board.generatePossibleMoves()
-            board.applyScore(board.allPossibilities, board.getNewInstance())
-            #with open('data.json', 'w+') as outfile:
-                #json.dump(board.allPossibilities, outfile)
-            #board.fulfilTree(board.allPossibilities, n_player)
-            board.fulfilTree([], player_multiplier)
-            node = board.allPossibilities
-
-            
-            move = board.chooseMove(node, player_multiplier)
-            board.dropCell(node[1][move][0])
-            board.printBoard()
-            actual_score = board.getScore()
-            
-            if(actual_score==board.player_0_wins):
-                print('\33[41m'+"O jogador 0 venceu!"+'\x1b[0m')
-                board.printBoard(0)
-            elif(actual_score==board.player_1_wins):
-                print('\33[42m'+"O jogador 1 venceu!"'\x1b[0m')
-                board.printBoard(1)
-            else:
-                play(board, node[1][move], n_player*(-1))
+                remove.append(i)
+        for removed, i in enumerate(remove, start=0):
+            self.avaliable_moves.pop(i-removed)
+        if(len(use)==0):
+            return False
         else:
-            #board.generatePossibleMoves()
-            #board.applyScore(board.allPossibilities, board.getNewInstance())
-            #with open('data.json', 'w+') as outfile:
-                #json.dump(board.allPossibilities, outfile)
-            #board.fulfilTree(board.allPossibilities, n_player)
-            #board.fulfilTree([], n_player)
-            #node = board.allPossibilities
-            if(board.n_moves%2==0):
-                move = board.chooseMove(node, 1)
+            self.generated_childs+=1
+            return new_board   
+    def alphabeta(self):
+        count = 0
+        while(len(self.tree[0].avaliable_moves)>0 or len(self.tree)!=1):
+            if(self.tree[-1].alpha[0]>=self.tree[-1].beta[0] and len(self.tree)>1):
+                self.tree.pop(-1)
+                continue
+            count+=1
+            # go to leaf node
+            while(len(self.tree)<=self.dificult):
+                child = self.tree[-1].getChild()
+                if(child):
+                    self.tree.append(child)
+                else:
+                    break
+            if(len(self.tree)==1):
+                return "fim"
+            if(self.tree[-1].generated_childs>0):
+                if(self.tree[-1].n_moves%2==0):
+                    if(self.tree[-1].alpha[0]<self.tree[-2].beta[0]):
+                        self.tree[-2].beta[0] = self.tree[-1].alpha[0]
+                        self.tree[-2].best_move = self.tree[-1].parent_move
+                else:
+                    if(self.tree[-1].beta[0]>self.tree[-2].alpha[0]):
+                        self.tree[-2].alpha[0] = self.tree[-1].beta[0]
+                        self.tree[-2].best_move = self.tree[-1].parent_move
+                self.tree.pop(-1)
+                continue
             else:
-                move = board.chooseMove(node, -1)
-            board.dropCell(node[1][move][0])
-            board.printBoard()
-            actual_score = board.getScore()
-            if(actual_score==board.player_0_wins):
-                print('\33[41m'+"O jogador 0 venceu!"+'\x1b[0m')
-                board.printBoard(0)
-            elif(actual_score==board.player_1_wins):
-                print('\33[42m'+"O jogador 1 venceu!"'\x1b[0m')
-                board.printBoard(1)
-            else:
-                #print(move)
-                #print(node[1][move])
-                play(board, node[1][move], n_player*(-1))
+                score = self.tree[-1].getScore()
+                if(self.tree[-1].n_moves%2==0):
+                    if(score<self.tree[-2].beta[0]):
+                        self.tree[-2].beta[0] = score
+                        self.tree[-2].best_move = self.tree[-1].parent_move
+                else:
+                    if(score>self.tree[-2].alpha[0]):
+                        self.tree[-2].alpha[0] = score
+                        self.tree[-2].best_move = self.tree[-1].parent_move
+                self.tree.pop(-1)
+                continue
+        print(count)
             
+    def minimax(self):
+        self.tree = [self.getNewInstance()]
+        return self.alphabeta()
+        #return self.tree[0].best_move
+
+def play(board, human_player_turn=True):
+    if(human_player_turn):
+        print("Sua jogada: ")
+        move = int(input())
+        board.dropCell(move)
+        board.printBoard()
+        score = board.getScore()
+        if(score==board.player_0_wins):
+            print("O jogador 0 venceu!")
+            return True
+        elif(score==board.player_1_wins):
+            print("O jogador 1 venceu!")
+            return True
+        play(board, not human_player_turn)
     else:
-        if(len(node[1])==0):
-            if(board.n_moves%2==0):
-                player_multiplier = 1  
-            else:
-                player_multiplier = -1
-            #board.filterPossibilities(board.allPossibilities, board.getNewInstance())
-            board.generatePossibleMoves()
-            board.applyScore(board.allPossibilities, board.getNewInstance())
-            #with open('data.json', 'w+') as outfile:
-                #json.dump(board.allPossibilities, outfile)
-            #board.fulfilTree(board.allPossibilities, n_player)
-            board.fulfilTree([], player_multiplier)
-            node = board.allPossibilities
-
-            move = int(input("Faça sua jogada: "))
-            index = -1
-            for i, child in enumerate(node[1], start=0):
-                if(child[0]==move):
-                    index = i
-            board.dropCell(move)
-            actual_score = board.getScore()
-            if(actual_score==board.player_0_wins):
-                print('\33[41m'+"O jogador 0 venceu!"+'\x1b[0m')
-                board.printBoard(0)
-            elif(actual_score==board.player_1_wins):
-                print('\33[42m'+"O jogador 1 venceu!"'\x1b[0m')
-                board.printBoard(1)
-            else:
-                board.printBoard()
-                play(board, node[1][index], n_player*(-1))
-        else:
-            move = int(input("Faça sua jogada: "))
-            index = -1
-            for i, child in enumerate(node[1], start=0):
-                #print(i)
-                #print(child)
-                if(child[0]==move):
-                    index = i
-            board.dropCell(move)
-            actual_score = board.getScore()
-            if(actual_score==board.player_0_wins):
-                print('\33[41m'+"O jogador 0 venceu!"+'\x1b[0m')
-                board.printBoard(0)
-            elif(actual_score==board.player_1_wins):
-                print('\33[42m'+"O jogador 1 venceu!"'\x1b[0m')
-                board.printBoard(1)
-            else:
-                board.printBoard()
-                play(board, node[1][index], n_player*(-1))
-            
-
+        board.minimax()
+        move = board.tree[0].best_move
+        board.dropCell(move)
+        board.printBoard()
+        score = board.getScore()
+        if(score==board.player_0_wins):
+            print("O jogador 0 venceu!")
+            return True
+        elif(score==board.player_1_wins):
+            print("O jogador 1 venceu!")
+            return True
+        play(board, not human_player_turn)
 
 
 positions = [[0 for x in range(0, 7)] for y in range(0, 6)] 
 for y in range(0, 6):
     for x in range(0, 7):
         positions[y][x] = [None, None]
-board = Board(positions, dificult=7)
-board.printBoard()
+board = Board(positions, dificult=6)
 
-
-'''
-board.dropCell(3)
-#board.printBoard()
-board.dropCell(3)
-board.dropCell(3)
-board.dropCell(3)
-board.dropCell(0)
-board.dropCell(6)
-
-board.dropCell(0)
-board.dropCell(2)
 board.printBoard()
-board.dropCell(1)
-board.dropCell(2)
-board.dropCell(1)
-board.dropCell(2)
-board.dropCell(2)
-board.dropCell(4)
-board.dropCell(0)
-#board.printBoard()
-board.dropCell(0)
-board.dropCell(1)
-board.dropCell(1)
-board.dropCell(2)
-board.dropCell(2)
-board.dropCell(4)
-board.printBoard()
-'''
-board.printBoard()
-#print(board.getScore())
-#print(board.positions)
-print("gerando")
-#board.generatePossibleMoves()
-#all_conbinations = board.loadMovesFromJson() 
-#board.applyScore(board.allPossibilities, board.getNewInstance())
-#board.fulfilTree(board.allPossibilities, 1)
-#board.fulfilTree([], 1)
-#with open('data.json', 'w+') as outfile:
-    #json.dump(board.allPossibilities, outfile)
-#print(len(board.allPossibilities))
-#board.getAllPossibilities()
-board.generateCombinations()
-board.scoreEdge()
-print("fim")
-#print(len(board.allPossibilities))
-#print(len(board.allPossibilities[-1]))
-#print(board.allPossibilities)
-#play(board, board.allPossibilities, -1)
+play(board, False)
