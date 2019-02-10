@@ -1,21 +1,15 @@
-import json
-import sys
-import copy
-sys.setrecursionlimit(5000)
 #player_0_wins = 1000000
 #player_1_wins = -player_0_wins
 class Board:
-    def __init__(self, positions, moves = None, n_moves = 0, dificult=7 , combinations=None, alpha=-1000000, beta=1000000, parent_move=None):
+    def __init__(self, positions, moves = None, n_moves = 0, dificult=7 , alpha=-1000000, beta=1000000, parent_move=None):
         self.positions = positions
         self.moves = moves
         self.n_moves = n_moves
         self.valid_moves = [0, 1, 2, 3, 4, 5, 6]
-        self.valid_moves_array = [[0], [1], [2], [3], [4], [5], [6]]
         self.player_0_wins = 1000000
         self.player_1_wins = -self.player_0_wins
         self.dificult = dificult
-        self.combinations = combinations
-        self.avaliable_moves = [0, 1, 2, 3, 4, 5, 6]
+        self.avaliable_moves = self.generateAvaliableMoves()
         self.isLeaf = False
         self.tree = None
         self.alpha = [alpha, parent_move]
@@ -23,6 +17,17 @@ class Board:
         self.parent_move = parent_move
         self.best_move = None
         self.generated_childs = 0
+    def generateAvaliableMoves(self):
+        initial_moves = [0,1,2,3,4,5,6]
+        final_moves = [0,1,2,3,4,5,6]
+        for position in initial_moves:
+            cont = 5
+            for y in range(0, 6):
+                if(self.positions[y][position][0] is not None):
+                    cont-=1
+            if(cont==-1):
+                final_moves.remove(position)
+        return final_moves
     def setParentMove(self, move):
         self.alpha[1] = move
         self.beta[1] = move
@@ -107,67 +112,12 @@ class Board:
         self.positions[cont][position] = [(self.n_moves%2), self.n_moves+1]
         self.n_moves+=1
         return True
-    def chooseMove(self, node, n_player):
-        if(n_player>0):
-            greater = self.player_1_wins
-            move = None
-            for index,child in enumerate(node[1], start=0):
-                if(child[0] is None):
-                    continue
-                if(child[2]>=greater):
-                    greater = child[2]
-                    move = index
-            return move
-        else:
-            smaller = self.player_0_wins
-            move = None
-            for index, child in enumerate(node[1], start=0):
-                if(child[0] is None):
-                    continue
-                if(child[2]<=smaller):
-                    smaller = child[2]
-                    move = index
-            return move
     def getNewInstance(self):
         new_positions = [[0 for x in range(0, 7)] for y in range(0, 6)] 
         for y in range(0, 6):
             for x in range(0, 7):
                 new_positions[y][x] = self.positions[y][x]
         return Board(new_positions, n_moves=self.n_moves, dificult=self.dificult, alpha= self.alpha[0], beta= self.beta[0])
-    def format(self, v1, v2):    
-        combinations = []
-        for e in v1:
-            for element in v2:
-                combinations.append(e+[element])
-        return combinations
-    def getCombinations(self, v1, v2, n):
-        if n == 0:
-            return v1
-        result = []
-        for element in v1:
-            result+=self.format([element], v2)
-        return self.getCombinations(result, v2, n-1)
-    def generateCombinations(self):
-        self.combinations = self.getCombinations(self.valid_moves_array, self.valid_moves, self.dificult-1)
-    def scoreA(self, combination):
-        new_tab = self.getNewInstance()
-        valid_moves = []
-        for move in combination:
-            if(new_tab.dropCell(move)):
-                score = new_tab.getScore()
-                if(score==self.player_0_wins or score==self.player_1_wins):
-                    valid_moves.append([move, -1])
-                    break
-                else:
-                    valid_moves.append(move)
-            else:
-                print('x')
-                break
-        return valid_moves
-                
-    def scoreEdge(self):
-        for combination in self.combinations:
-            combination = self.scoreA(combination)
     def checkUp(self, x, y):
         score = 0
         player_number = self.positions[y][x][0] 
@@ -262,7 +212,6 @@ class Board:
             return self.player_0_wins # this return just say that some player wins 
         return scoreUp + scoreDown + scoreLeft + scoreRight + scoreUpRight + scoreUpLeft + scoreDownRight + scoreDownLeft
     def getScore(self):
-        #reimplementar
         board_score = 0
         for y in range(0, 6):
             for x in range(0, 7):
@@ -281,49 +230,6 @@ class Board:
                 board_score+= actual_score
                 #print(actual_score)
         return board_score
-    def validate_moves(self, moves):
-        new_board = self.getNewInstance()
-        for move in moves:
-            if(not new_board.dropCell(move)):
-                return False
-        return True
-    def applyScore(self, node, board):
-        if(node[0] is None):
-            for child in node[1]:
-                new_board = board.getNewInstance()
-                self.applyScore(child, new_board)
-        elif(board.dropCell(node[0])):
-            if(not node[1]):
-                #print("y")
-                node.append(board.getScore())
-            else:
-                for child in node[1]:
-                    new_board = board.getNewInstance()
-                    self.applyScore(child, new_board)
-    def getAllChilds(self):
-        childs = []
-        for move in self.valid_moves:
-            new_board = self.getNewInstance()
-            if(new_board.dropCell(move)):
-                childs.append(new_board)
-        return childs
-    def getAllPossibilities(self):
-        all = [[self]]
-        for count in range(0, self.dificult):
-            new_depth = []
-            for node in all[-1]:
-                score = node.getScore() 
-                if(score==self.player_0_wins or score == self.player_1_wins):
-                    continue
-                new_depth.extend(node.getAllChilds())
-            all.append(new_depth)
-        self.allPossibilities = all
-        
-    def loadMovesFromJson(self):
-        with open('data.json', 'r') as myfile:
-            data = json.loads(myfile.read())
-        self.allPossibilities = data
-        return data
     def getChild(self):
         remove = []
         use = []
@@ -346,11 +252,20 @@ class Board:
             return False
         else:
             self.generated_childs+=1
-            return new_board   
+            return new_board  
+    def resetAlphaBeta(self):
+        self.alpha[0] = self.player_1_wins
+        self.beta[0]  = self.player_0_wins 
     def alphabeta(self):
         count = 0
+        poped = 0
         while(len(self.tree[0].avaliable_moves)>0 or len(self.tree)!=1):
+            # apply deep pruning
             if(self.tree[-1].alpha[0]>=self.tree[-1].beta[0] and len(self.tree)>1):
+                # condition to play when there is no best move
+                if(len(self.tree)==2 and len(self.tree[0].avaliable_moves)==0 and self.tree[0].best_move is None):
+                    self.tree[0].best_move = self.tree[-1].parent_move
+                poped+=1
                 self.tree.pop(-1)
                 continue
             count+=1
@@ -361,72 +276,123 @@ class Board:
                     self.tree.append(child)
                 else:
                     break
-            if(len(self.tree)==1):
-                return "fim"
-            if(self.tree[-1].generated_childs>0):
+            # check if it is a leaf node that generate at least one child node
+            if(self.tree[-1].generated_childs>0 and len(self.tree)>1):
                 if(self.tree[-1].n_moves%2==0):
-                    if(self.tree[-1].alpha[0]<self.tree[-2].beta[0]):
+                    if(self.tree[-1].alpha[0]<=self.tree[-2].beta[0]):
                         self.tree[-2].beta[0] = self.tree[-1].alpha[0]
                         self.tree[-2].best_move = self.tree[-1].parent_move
                 else:
-                    if(self.tree[-1].beta[0]>self.tree[-2].alpha[0]):
+                    if(self.tree[-1].beta[0]>=self.tree[-2].alpha[0]):
                         self.tree[-2].alpha[0] = self.tree[-1].beta[0]
                         self.tree[-2].best_move = self.tree[-1].parent_move
                 self.tree.pop(-1)
                 continue
-            else:
+            # indeed is a leaf node
+            elif(len(self.tree)>1):
                 score = self.tree[-1].getScore()
                 if(self.tree[-1].n_moves%2==0):
-                    if(score<self.tree[-2].beta[0]):
+                    if(score<=self.tree[-2].beta[0]):
                         self.tree[-2].beta[0] = score
                         self.tree[-2].best_move = self.tree[-1].parent_move
                 else:
-                    if(score>self.tree[-2].alpha[0]):
+                    if(score>=self.tree[-2].alpha[0]):
                         self.tree[-2].alpha[0] = score
                         self.tree[-2].best_move = self.tree[-1].parent_move
                 self.tree.pop(-1)
                 continue
+        '''
+        print("nodes: ")
         print(count)
-            
+        print("cutted: ")
+        print(poped)
+        '''
     def minimax(self):
         self.tree = [self.getNewInstance()]
         return self.alphabeta()
-        #return self.tree[0].best_move
 
 def play(board, human_player_turn=True):
+    board.resetAlphaBeta()
+    if(board.n_moves==42):
+        print("The game ended tied!")
+        return True
     if(human_player_turn):
-        print("Sua jogada: ")
+        print("Your move: ")
         move = int(input())
         board.dropCell(move)
-        board.printBoard()
         score = board.getScore()
         if(score==board.player_0_wins):
-            print("O jogador 0 venceu!")
+            board.printBoard(0)
+            print('\033[91m'+"Player 0 wins!"+'\x1b[0m')
             return True
         elif(score==board.player_1_wins):
-            print("O jogador 1 venceu!")
+            board.printBoard(1)
+            print('\033[32m'+"Player 1 wins!"+'\x1b[0m')
             return True
+        board.printBoard()
         play(board, not human_player_turn)
-    else:
+        '''
+        #board.dificult = 4
         board.minimax()
         move = board.tree[0].best_move
+        print("beta:")
+        print(board.tree[0].beta[0])
+        print("alpha:")
+        print(board.tree[0].alpha[0])
         board.dropCell(move)
         board.printBoard()
         score = board.getScore()
         if(score==board.player_0_wins):
-            print("O jogador 0 venceu!")
+            score = board.getScore(0)
+            print('\033[91m'+"Player 0 wins!"+'\x1b[0m')
             return True
         elif(score==board.player_1_wins):
-            print("O jogador 1 venceu!")
+            score = board.getScore(1)
+            print('\033[32m'+"Player 1 wins!"+'\x1b[0m')
             return True
         play(board, not human_player_turn)
+        '''
+    else:
+        #board.dificult = 7
+        board.minimax()
+        move = board.tree[0].best_move
+        print("beta:")
+        print(board.tree[0].beta[0])
+        print("alpha:")
+        print(board.tree[0].alpha[0])
+        board.dropCell(move)
+        score = board.getScore()
+        if(score==board.player_0_wins):
+            board.printBoard(0)
+            print('\033[91m'+"Player 0 wins!"+'\x1b[0m')
+            return True
+        elif(score==board.player_1_wins):
+            board.printBoard(1)
+            print('\033[32m'+"Player 1 wins!"+'\x1b[0m')
+            return True
+        board.printBoard()
+        play(board, not human_player_turn)
 
+def beginNewMatch():
+    print("Choose the IA level: ")
+    print("1 - Easy")
+    print("2 - Medium")
+    print("3 - Hard")
+    print("4 - Very hard")
+    level = int(input())+2
 
-positions = [[0 for x in range(0, 7)] for y in range(0, 6)] 
-for y in range(0, 6):
-    for x in range(0, 7):
-        positions[y][x] = [None, None]
-board = Board(positions, dificult=6)
+    print("Who begins?")
+    print("1 - Me")
+    print("2 - IA")
+    first_player = int(input())
+    positions = [[0 for x in range(0, 7)] for y in range(0, 6)] 
+    for y in range(0, 6):
+        for x in range(0, 7):
+            positions[y][x] = [None, None]
+    board = Board(positions, dificult=level)
 
-board.printBoard()
-play(board, False)
+    board.printBoard()
+    if(first_player==1):
+        play(board, True)
+    else:
+        play(board, False)
