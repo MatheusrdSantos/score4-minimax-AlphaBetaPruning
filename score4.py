@@ -33,11 +33,11 @@ def play(board, human_player_turn=True):
         board.printBoard()
         score = board.getScore()
         if(score==board.player_0_wins):
-            score = board.getScore(0)
+            score = board.getScore()
             print('\033[91m'+"Player 0 wins!"+'\x1b[0m')
             return True
         elif(score==board.player_1_wins):
-            score = board.getScore(1)
+            score = board.getScore()
             print('\033[32m'+"Player 1 wins!"+'\x1b[0m')
             return True
         play(board, not human_player_turn)
